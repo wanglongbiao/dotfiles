@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# 裸 Linux 一行命令初始化终端环境（vim / tmux / aliases / zsh + oh-my-zsh）
+# 用法：curl -fsSL https://raw.githubusercontent.com/wanglongbiao/dotfiles/main/install.sh | bash
+# 环境变量：DOTFILES_REPO  DOTFILES_BRANCH  DOTFILES_DIR  DOTFILES_NO_CHSH  DOTFILES_NO_OMZ
+
+set -euo pipefail
+
+REPO="${DOTFILES_REPO:-wanglongbiao/dotfiles}"
+BRANCH="${DOTFILES_BRANCH:-main}"
+DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
+URL="https://github.com/${REPO}.git"
+
+say()  { printf '\033[1;32m[ok]\033[0m %s\n'   "$*"; }
+warn() { printf '\033[1;33m[warn]\033[0m %s\n' "$*" >&2; }
+need() { command -v "$1" >/dev/null 2>&1; }
+
+# 软链，目标若非软链则先备份
+link() {
+    if [ -e "$2" ] && [ ! -L "$2" ]; then mv "$2" "$2.bak.$(date +%s)"; warn "备份 $2"; fi
+    ln -sfn "$1" "$2"
+}
+
+# 已是 git 仓库则 pull，否则 clone
+sync_repo() {
+    if [ -d "$2/.git" ]; then
+        git -C "$2" pull --ff-only --quiet 2>/dev/null || warn "更新 $2 失败"
+    else
+        git clone --depth 1 ${3:+-b "$3"} "$1" "$2"
+    fi
+}
+
+need git  || { echo "需要 git";  exit 1; }
+need curl || { echo "需要 curl"; exit 1; }
+for c in zsh vim tmux; do need "$c" || warn "缺少 $c，建议: sudo apt install -y $c"; done
+
+# 本地副本完整则跳过 git clone（兼容 syncthing 同步场景）
+if [ -f "$DIR/zshrc" ] && [ -f "$DIR/vimrc" ] && [ -f "$DIR/tmux.conf" ] && [ -f "$DIR/bash_aliases" ]; then
+    say "复用本地 $DIR"
+else
+    mkdir -p "$(dirname "$DIR")"
+    sync_repo "$URL" "$DIR" "$BRANCH"
+fi
+
+link "$DIR/vimrc"        "$HOME/.vimrc"
+link "$DIR/tmux.conf"    "$HOME/.tmux.conf"
+link "$DIR/bash_aliases" "$HOME/.bash_aliases"
+
+mkdir -p "$HOME/.tmux/plugins"
+sync_repo https://github.com/tmux-plugins/tmux-resurrect.git "$HOME/.tmux/plugins/tmux-resurrect" || true
+sync_repo https://github.com/tmux-plugins/tmux-continuum.git "$HOME/.tmux/plugins/tmux-continuum" || true
+
+if [ "${DOTFILES_NO_OMZ:-0}" != "1" ]; then
+    export RUNZSH=no CHSH=no KEEP_ZSHRC=yes
+    [ -d "$HOME/.oh-my-zsh" ] || sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    ZC="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+    sync_repo https://github.com/zsh-users/zsh-autosuggestions.git     "$ZC/plugins/zsh-autosuggestions"
+    sync_repo https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZC/plugins/zsh-syntax-highlighting"
+    link "$DIR/zshrc" "$HOME/.zshrc"   # 必须在 omz 安装之后，否则会被覆盖
+fi
+
+if [ "${DOTFILES_NO_CHSH:-0}" != "1" ] && need zsh; then
+    target="$(command -v zsh)"
+    if [ "${SHELL:-}" != "$target" ]; then
+        sudo chsh -s "$target" "$USER" 2>/dev/null \
+            || chsh -s "$target" 2>/dev/null \
+            || warn "chsh 失败，请手动: chsh -s $target"
+    fi
+fi
+
+say "完成。打开新终端或执行: exec zsh"
