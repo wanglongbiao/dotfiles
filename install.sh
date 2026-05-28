@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 裸 Linux 一行命令初始化终端环境（vim / tmux / aliases / zsh + oh-my-zsh）
 # 用法：curl -fsSL https://raw.githubusercontent.com/wanglongbiao/dotfiles/main/install.sh | bash
-# 环境变量：DOTFILES_REPO  DOTFILES_BRANCH  DOTFILES_DIR  DOTFILES_NO_CHSH  DOTFILES_NO_OMZ
+# 环境变量：DOTFILES_REPO  DOTFILES_BRANCH  DOTFILES_DIR  DOTFILES_NO_CHSH  DOTFILES_NO_OMZ  DOTFILES_SYNC
 
 set -euo pipefail
 
@@ -33,8 +33,12 @@ need git  || { echo "需要 git";  exit 1; }
 need curl || { echo "需要 curl"; exit 1; }
 for c in zsh vim tmux; do need "$c" || warn "缺少 $c，建议: sudo apt install -y $c"; done
 
-# 本地副本完整则跳过 git clone（兼容 syncthing 同步场景）
-if [ -f "$DIR/zshrc" ] && [ -f "$DIR/vimrc" ] && [ -f "$DIR/tmux.conf" ] && [ -f "$DIR/bash_aliases" ]; then
+# git 仓库存在则增量更新，DOTFILES_SYNC=1 跳过（兼容 syncthing 场景）
+if [ -d "$DIR/.git" ] && [ "${DOTFILES_SYNC:-0}" != "1" ]; then
+    git -C "$DIR" pull --ff-only --quiet || warn "更新 $DIR 失败"
+elif [ -d "$DIR/.git" ] && [ "${DOTFILES_SYNC:-0}" = "1" ]; then
+    say "syncthing 模式，跳过更新"
+elif [ -f "$DIR/zshrc" ]; then
     say "复用本地 $DIR"
 else
     mkdir -p "$(dirname "$DIR")"
