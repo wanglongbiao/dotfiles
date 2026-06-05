@@ -14,6 +14,27 @@ say()  { printf '\033[1;32m[ok]\033[0m %s\n'   "$*"; }
 warn() { printf '\033[1;33m[warn]\033[0m %s\n' "$*" >&2; }
 need() { command -v "$1" >/dev/null 2>&1; }
 
+# 自动安装缺失软件包
+pkg_install() {
+    local missing=()
+    for p in "$@"; do need "$p" || missing+=("$p"); done
+    [ ${#missing[@]} -eq 0 ] && return
+    say "安装: ${missing[*]}"
+    if need apt-get; then
+        sudo apt-get update -qq && sudo apt-get install -y -qq "${missing[@]}"
+    elif need dnf; then
+        sudo dnf install -y "${missing[@]}"
+    elif need yum; then
+        sudo yum install -y "${missing[@]}"
+    elif need pacman; then
+        sudo pacman -S --noconfirm "${missing[@]}"
+    elif need apk; then
+        sudo apk add "${missing[@]}"
+    else
+        warn "未找到包管理器，请手动安装: ${missing[*]}"
+    fi
+}
+
 # 软链，目标若非软链则先备份
 link() {
     if [ -e "$2" ] && [ ! -L "$2" ]; then mv "$2" "$2.bak.$(date +%s)"; warn "备份 $2"; fi
@@ -29,9 +50,7 @@ sync_repo() {
     fi
 }
 
-need git  || { echo "需要 git";  exit 1; }
-need curl || { echo "需要 curl"; exit 1; }
-for c in zsh vim tmux; do need "$c" || warn "缺少 $c，建议: sudo apt install -y $c"; done
+pkg_install git curl zsh vim tmux htop
 
 # 已是 git 仓库则 pull，有文件则复用，否则 clone
 if [ -d "$DIR/.git" ]; then
@@ -43,9 +62,11 @@ else
     sync_repo "$URL" "$DIR" "$BRANCH"
 fi
 
+mkdir -p "$HOME/.claude"
 link "$DIR/vimrc"        "$HOME/.vimrc"
 link "$DIR/tmux.conf"    "$HOME/.tmux.conf"
 link "$DIR/bash_aliases" "$HOME/.bash_aliases"
+link "$DIR/CLAUDE.md"    "$HOME/.claude/CLAUDE.md"
 
 mkdir -p "$HOME/.tmux/plugins"
 sync_repo https://github.com/tmux-plugins/tmux-resurrect.git "$HOME/.tmux/plugins/tmux-resurrect" || true
