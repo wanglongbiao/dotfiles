@@ -1,0 +1,36 @@
+# Git 全局配置文件
+
+[user]
+	name = 王龙彪
+	email = wanglongbiao@vip.qq.com
+
+[alias]
+	st = status
+	cm = commit -m
+	p = pull
+	ps = push
+	br = branch
+	co = checkout
+	cl = clone
+	cl1 = clone --depth=1
+	l = log -5 --oneline
+
+[i18n]
+	commitencoding = utf-8
+	logoutputencoding = utf-8
+
+[core]
+	safecrlf = false
+
+[gui]
+	encoding = utf-8
+
+[branch]
+	autosetuprebase = always
+
+[branch "develop"]
+	rebase = true
+
+[init]
+	defaultBranch = main
+
