@@ -63,6 +63,7 @@ else
 fi
 
 mkdir -p "$HOME/.claude"
+link "$DIR/gitconfig"    "$HOME/.gitconfig"
 link "$DIR/vimrc"        "$HOME/.vimrc"
 link "$DIR/tmux.conf"    "$HOME/.tmux.conf"
 link "$DIR/bash_aliases" "$HOME/.bash_aliases"
