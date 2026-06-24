@@ -9,5 +9,7 @@ alias dl='docker logs --tail 1000'
 alias dr='docker remove -f'
 alias di='docker images'
 
-alias du='du -sh'
+alias vi='vim'
+
+alias du='ncdu'
 
