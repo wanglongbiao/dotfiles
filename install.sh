@@ -50,7 +50,10 @@ sync_repo() {
     fi
 }
 
-pkg_install git curl zsh vim tmux htop
+pkg_install curl zsh vim tmux htop
+
+# git 必须已安装，不检查
+need git || { warn "需要 git，请先安装"; exit 1; }
 
 # 已是 git 仓库则 pull，有文件则复用，否则 clone
 if [ -d "$DIR/.git" ]; then

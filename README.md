@@ -7,14 +7,15 @@
 - **aliases**：apt / docker / tmux 常用快捷命令
 - **zsh + oh-my-zsh**：agnoster 主题 + zsh-autosuggestions + zsh-syntax-highlighting
 
-> 这个仓库**只放公开、通用**的终端配置。带密钥/邮箱/服务器策略的内容放在另一个私有仓库。
-
 ---
 
 ## 一行命令
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/wanglongbiao/dotfiles/main/install.sh | bash
+
+# on the server
+# git@github.com:wanglongbiao/dotfiles.git ~/.dotfiles
 ```
 
 脚本**完全幂等**，可以反复执行。
